@@ -117,7 +117,7 @@ pub struct InodeTable {
 pub const SUPERBLOCK_OFFSET: u64 = 1024; // Superblock is located at 1024 bytes
 pub const SUPERBLOCK_SIZE: usize = 1024; // Size of the superblock
 
-pub const GROUP_DESC_OFFSET: u64 = 2048; // Group descriptor is located at 2048 bytes
+pub const GROUP_DESC_OFFSET: u64 = 4096; // Group descriptor is located at 2048 bytes
 pub const GROUP_DESC_SIZE: usize = 32; // Size of the group descriptor
 
 pub const INODE_SIZE: usize = 128; // Size of each inode

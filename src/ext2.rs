@@ -95,6 +95,4 @@ impl Ext2 {
         }
         Ok(descriptors)
     }
-
-    pub fn read_inode_table(&mut self) -> io::Result<crate::layout::Ext2Inode> {}
 }
