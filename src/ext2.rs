@@ -1,3 +1,4 @@
+use crate::layout;
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::fs::File;
 use std::io;
@@ -24,50 +25,63 @@ impl Ext2 {
             .div_ceil(super_block.s_blocks_per_group) as usize;
         println!("Block group count: {}", block_group_count);
         let group_desc = self.read_group_descriptor(block_group_count).unwrap();
+
         for g in group_desc {
             println!("{:?}", g);
-            let inode_offset = 4096 * g.bg_inode_table as u64;
+            let inode_offset = 4096 * (g.bg_inode_table + 0) as u64;
+
             self.fd.seek(SeekFrom::Start(inode_offset)).unwrap();
-            let mut buffer = [0u8; 128];
-            self.fd.read_exact(&mut buffer).unwrap();
-            let mut cursor = std::io::Cursor::new(buffer);
-            let inode = crate::layout::Inode {
-                mode: cursor.read_u16::<LittleEndian>().unwrap(),
-                uid: cursor.read_u16::<LittleEndian>().unwrap(),
-                size: cursor.read_u32::<LittleEndian>().unwrap(),
-                atime: cursor.read_u32::<LittleEndian>().unwrap(),
-                ctime: cursor.read_u32::<LittleEndian>().unwrap(),
-                mtime: cursor.read_u32::<LittleEndian>().unwrap(),
-                dtime: cursor.read_u32::<LittleEndian>().unwrap(),
-                gid: cursor.read_u16::<LittleEndian>().unwrap(),
-                links_count: cursor.read_u16::<LittleEndian>().unwrap(),
-                blocks: cursor.read_u32::<LittleEndian>().unwrap(),
-                flags: cursor.read_u32::<LittleEndian>().unwrap(),
-                osd1: cursor.read_u32::<LittleEndian>().unwrap(),
-                block: [
-                    cursor.read_u32::<LittleEndian>().unwrap(),
-                    cursor.read_u32::<LittleEndian>().unwrap(),
-                    cursor.read_u32::<LittleEndian>().unwrap(),
-                    cursor.read_u32::<LittleEndian>().unwrap(),
-                    cursor.read_u32::<LittleEndian>().unwrap(),
-                    cursor.read_u32::<LittleEndian>().unwrap(),
-                    cursor.read_u32::<LittleEndian>().unwrap(),
-                    cursor.read_u32::<LittleEndian>().unwrap(),
-                    cursor.read_u32::<LittleEndian>().unwrap(),
-                    cursor.read_u32::<LittleEndian>().unwrap(),
-                    cursor.read_u32::<LittleEndian>().unwrap(),
-                    cursor.read_u32::<LittleEndian>().unwrap(),
-                    cursor.read_u32::<LittleEndian>().unwrap(),
-                    cursor.read_u32::<LittleEndian>().unwrap(),
-                    cursor.read_u32::<LittleEndian>().unwrap(),
-                ],
-                generation: cursor.read_u32::<LittleEndian>().unwrap(),
-                file_acl: cursor.read_u32::<LittleEndian>().unwrap(),
-                dir_acl: cursor.read_u32::<LittleEndian>().unwrap(),
-                faddr: cursor.read_u32::<LittleEndian>().unwrap(),
-                osd2: [0; 12],
-            };
-            println!("{:?}", inode);
+            let p = 4096 / 256;
+            for i in 0..p {
+                let mut buffer = [0u8; 256];
+                self.fd.read_exact(&mut buffer).unwrap();
+                let mut cursor = std::io::Cursor::new(buffer);
+                let inode = crate::layout::Ext2Inode {
+                    i_mode: cursor.read_u16::<LittleEndian>().unwrap(),
+                    i_uid: cursor.read_u16::<LittleEndian>().unwrap(),
+                    i_size: cursor.read_u32::<LittleEndian>().unwrap(),
+                    i_atime: cursor.read_u32::<LittleEndian>().unwrap(),
+                    i_ctime: cursor.read_u32::<LittleEndian>().unwrap(),
+                    i_mtime: cursor.read_u32::<LittleEndian>().unwrap(),
+                    i_dtime: cursor.read_u32::<LittleEndian>().unwrap(),
+                    i_gid: cursor.read_u16::<LittleEndian>().unwrap(),
+                    i_links_count: cursor.read_u16::<LittleEndian>().unwrap(),
+                    i_blocks: cursor.read_u32::<LittleEndian>().unwrap(),
+                    i_flags: 0,
+                    i_osd1: [
+                        cursor.read_u32::<LittleEndian>().unwrap(),
+                        cursor.read_u32::<LittleEndian>().unwrap(),
+                        cursor.read_u32::<LittleEndian>().unwrap(),
+                    ],
+                    i_block: [
+                        cursor.read_u32::<LittleEndian>().unwrap(),
+                        cursor.read_u32::<LittleEndian>().unwrap(),
+                        cursor.read_u32::<LittleEndian>().unwrap(),
+                        cursor.read_u32::<LittleEndian>().unwrap(),
+                        cursor.read_u32::<LittleEndian>().unwrap(),
+                        cursor.read_u32::<LittleEndian>().unwrap(),
+                        cursor.read_u32::<LittleEndian>().unwrap(),
+                        cursor.read_u32::<LittleEndian>().unwrap(),
+                        cursor.read_u32::<LittleEndian>().unwrap(),
+                        cursor.read_u32::<LittleEndian>().unwrap(),
+                        cursor.read_u32::<LittleEndian>().unwrap(),
+                        cursor.read_u32::<LittleEndian>().unwrap(),
+                        cursor.read_u32::<LittleEndian>().unwrap(),
+                        cursor.read_u32::<LittleEndian>().unwrap(),
+                        cursor.read_u32::<LittleEndian>().unwrap(),
+                    ],
+                    i_generation: 0,
+                    i_file_acl: 0,
+                    i_dir_acl: 0,
+                    i_faddr: 0,
+                };
+                let file_type = match inode.i_mode & 0xF000 {
+                    0x4000 => layout::FileType::Directory,
+                    0x8000 => layout::FileType::RegularFile,
+                    _ => layout::FileType::Unknown,
+                };
+                println!("Inode {:?}", file_type);
+            }
         }
     }
 
@@ -105,6 +119,8 @@ impl Ext2 {
             s_rev_level: cursor.read_u32::<LittleEndian>()?,
             s_def_resuid: cursor.read_u16::<LittleEndian>()?,
             s_def_resgid: cursor.read_u16::<LittleEndian>()?,
+            s_first_ino: cursor.read_u32::<LittleEndian>()?,
+            s_inode_size: cursor.read_u16::<LittleEndian>()?,
         };
 
         Ok(superblock)

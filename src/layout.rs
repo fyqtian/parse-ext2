@@ -27,6 +27,8 @@ pub struct Ext2SuperBlock {
     pub s_def_resuid: u16,
     pub s_def_resgid: u16,
     // Other fields can be added as needed
+    pub s_first_ino: u32,
+    pub s_inode_size: u16,
 }
 
 #[repr(C)]
@@ -62,7 +64,6 @@ pub struct Ext2Inode {
     pub i_file_acl: u32,
     pub i_dir_acl: u32,
     pub i_faddr: u32,
-    pub i_osd2: [u32; 12],
 }
 
 #[repr(C)]

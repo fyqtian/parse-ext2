@@ -6,3 +6,5 @@
 
 - [ext2 Filesystem Specification](https://www.nongnu.org/ext2-doc/ext2.html)
 - [blog](https://www.cnblogs.com/f66666/p/18353033)
+- cat /etc/mke2fs.conf
+- https://github.com/nerd2/gexto

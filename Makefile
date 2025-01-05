@@ -1,6 +1,6 @@
 create	:
 	dd if=/dev/zero of=ext2_image.img bs=1024k count=10
-	mkfs.ext2 ext2_image.img
+	mkfs.ext2 -I 128 ext2_image.img
 
 mount:
 	mkdir -p /mnt/ext2_image
